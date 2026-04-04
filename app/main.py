@@ -1,9 +1,9 @@
-from utils.utils import check_drive_link, load, save, get_date_from_weekday, read_suspended, write_suspended
+from utils.utils import check_drive_link, load, save, get_date_from_weekday, read_suspended, write_suspended, is_valid_date_format
 import json
 import ast
 import os
 from utils.utils import get_date_from_weekday
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import FileHistory
@@ -94,8 +94,10 @@ def reus():
 
             if cmd == "1":
                 cambiar_dia_reu()
+                break
             elif cmd == "2":
                 ver_dia_reu()
+                break
             elif cmd == "3":
                 suspender_convocatorias()
                 break
@@ -110,20 +112,23 @@ def reus():
 
 
 def cambiar_dia_reu():
-    weekday = input("Introduce el día de la semana de la próxima reu (L, M, X, J, V, S, D): ")
+    answer = input("Introduce fecha de la próxima reu (DD/MM/YYYY): ")
 
-    newdate = get_date_from_weekday(weekday)
+    if  is_valid_date_format(answer):
+        newdate = datetime.strptime(answer, "%d/%m/%Y").date()
 
-    data = load(MEETING_DATES_PATH)
+        data = load(MEETING_DATES_PATH)
 
-    # update second position
-    data[1] = newdate.isoformat()
+        # update second position
+        data[1] = newdate.isoformat()
 
-    # write back
-    save(MEETING_DATES_PATH, data)
+        # write back
+        save(MEETING_DATES_PATH, data)
 
-    dia_convocatoria = date.fromisoformat(data[1]) - timedelta(days=5)
-    print(f"La próxima reunión será el {newdate.strftime('%d/%m/%Y')}. La convocatoria está programada para el {dia_convocatoria} a las 19:00")
+        dia_convocatoria = date.fromisoformat(data[1]) - timedelta(days=5)
+        print(f"La próxima reunión será el {newdate.strftime('%d/%m/%Y')}. La convocatoria está programada para el {dia_convocatoria} a las 19:00")
+    else:
+        print("Valor introducido no válido")
 
 def ver_dia_reu():
     data = load(MEETING_DATES_PATH)

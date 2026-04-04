@@ -1,5 +1,5 @@
 import re
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
@@ -99,4 +99,9 @@ def write_suspended(boolean_val):
     with open(SUSPENDED_PATH, "w", encoding="utf-8") as f:
         f.write(data)
 
-
+def is_valid_date_format(s: str) -> bool:
+    try:
+        datetime.strptime(s, "%d/%m/%Y")
+        return True
+    except ValueError:
+        return False

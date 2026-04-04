@@ -190,8 +190,11 @@ def main():
                 break
 
             elif cmd == "help":
-                print("Available commands: help, exit")
-
+                print("Comandos:")
+                print("\t- reus\tModificar fecha de próximas reus")
+                print("\t- actas\tCambiar carpeta de actas")
+                print("\t- exit\tSalir")
+                break
             elif cmd == "":
                 continue
             elif cmd == "actas":

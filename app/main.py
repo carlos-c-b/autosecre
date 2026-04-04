@@ -1,4 +1,10 @@
 from utils.utils import check_drive_link
+from utils.utils import load, save
+import json
+import ast
+import os
+from utils.utils import get_date_from_weekday
+from datetime import date, timedelta
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import FileHistory
@@ -7,13 +13,27 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent
+
 HISTORY_PATH = BASE_DIR / "../files/log"
 MINUTES_PATH = BASE_DIR / "../files/minutes_id"
-commands = ["help", "exit", "actas"]
+MEETING_DATES_PATH = BASE_DIR / "../files/meeting_dates"
+
+WEEK_MAP = {
+    "L": 0,
+    "M": 1,
+    "X": 2,
+    "J": 3,
+    "V": 4,
+    "S": 5,
+    "D": 6,
+}
+
+commands = ["help", "exit", "actas", "reus"]
 
 completer = WordCompleter(commands, ignore_case=True)
 
 history = FileHistory(str(HISTORY_PATH))
+
 
 def actas():
     print("Gestión de actas")
@@ -61,7 +81,57 @@ def cambiar_link():
 
 
 
+def reus():
+    print("Gestionar convocatorias de reunión")
+    print("Selecciona una órden: ")
+    print("\t1) Cambiar día de próxima reu")
+    print("\t2) Ver día de próxima reu")
+    print("\t3) Suspender convocatorias")
+    print("\t4) Volver")
 
+    while True:
+        try:
+            cmd = input("Selección: ").strip()
+
+            if cmd == "1":
+                cambiar_dia_reu()
+            elif cmd == "2":
+                ver_dia_reu()
+            elif cmd == "3":
+                suspender_convocatorias()
+            elif cmd == "4":
+                break
+            else:
+                print("Selecciona una órden válida")
+        except KeyboardInterrupt:
+            print()
+            break
+
+
+
+def cambiar_dia_reu():
+    weekday = input("Introduce el día de la semana de la próxima reu (L, M, X, J, V, S, D): ")
+
+    newdate = get_date_from_weekday(weekday)
+
+    data = load(MEETING_DATES_PATH)
+
+    # update second position
+    data[1] = newdate.isoformat()
+
+    # write back
+    save(MEETING_DATES_PATH, data)
+
+    dia_convocatoria = date.fromisoformat(data[1]) - timedelta(days=5)
+    print(f"La próxima reunión será el {newdate.strftime('%d/%m/%Y')}. La convocatoria está programada para el {dia_convocatoria} a las 19:00")
+
+def ver_dia_reu():
+    with open(str(MEETING_DATES_PATH), "r", encoding="utf-8") as f:
+        data = ast.literal_eval(f.read())
+
+    second_date = date.fromisoformat(data[1])
+    dia_convocatoria = date.fromisoformat(data[1]) - timedelta(days=5)
+    print(f"La próxima reunión será el {second_date.strftime('%d/%m/%Y')}. La convocatoria está programada para el {dia_convocatoria} a las 19:00")
 
 def main():
     while True:
@@ -82,6 +152,8 @@ def main():
                 continue
             elif cmd == "actas":
                 actas()
+            elif cmd == "reus":
+                reus()
 
             else:
                 print(f"Comando desconocido: {cmd}")

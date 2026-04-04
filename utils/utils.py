@@ -1,7 +1,9 @@
 import re
+from datetime import date, timedelta
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
+import json
 from pathlib import Path
 
 
@@ -10,6 +12,16 @@ TOKEN_PATH = BASE_DIR / "../token.json"
 
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
+
+WEEK_MAP = {
+    "L": 0,
+    "M": 1,
+    "X": 2,
+    "J": 3,
+    "V": 4,
+    "S": 5,
+    "D": 6,
+}
 
 def extract_file_id(url: str) -> str:
    
@@ -41,3 +53,30 @@ def check_drive_link(url: str):
 
     return file_id, exists
 
+
+def get_date_from_weekday(letter: str) -> date:
+    letter = letter.upper()
+
+    if letter not in WEEK_MAP:
+        raise ValueError("Día de semana inválido. Usa L, M, X, J, V, S, D")
+
+    today = date.today()
+
+    # Monday of current week
+    monday = today - timedelta(days=today.weekday())
+
+    target_date = monday + timedelta(days=WEEK_MAP[letter])
+
+    return target_date
+
+def load(file_path):
+    with open(file_path) as f:
+        return json.load(f)
+
+def save(file_path, data):
+    clean = [
+            x.isoformat() if isinstance(x,date) else x
+            for x in data
+            ]
+    with open(file_path, "w") as f:
+        json.dump(data, f)

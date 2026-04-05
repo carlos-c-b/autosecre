@@ -1,4 +1,5 @@
 import re
+import os
 import subprocess
 from datetime import datetime, date, timedelta
 from googleapiclient.discovery import build
@@ -13,9 +14,9 @@ BASE_DIR = Path(__file__).resolve().parent
 TOKEN_PATH = BASE_DIR / "../token.json"
 PYTHON_PATH = BASE_DIR / "../venv/bin/python"
 SUSPENDED_PATH = BASE_DIR / "../files/suspended"
-SEND_MAIL_PATH = BASE_DIR / "mails.mail-convocatora-reu"
-CREATE_MINUTES_PATH = BASE_DIR / "utils.acta_utils"
-CRON_PATH = BASE_DIR / "utils.cron"
+SEND_MAIL_PATH = "mails.mail_convocatoria_reu"
+CREATE_MINUTES_PATH = "utils.acta_utils"
+CRON_PATH = "utils.cron"
 MEETING_DATES_PATH = BASE_DIR / "../files/meeting_dates"
 DAY_POINTS_PATH = BASE_DIR / "../files/day_points"
 NIGHT_POINTS_PATH = BASE_DIR / "../files/night_points"
@@ -23,6 +24,7 @@ DAY_POINTS_TEMP_PATH = BASE_DIR / "../files/day_points_temp"
 NIGHT_POINTS_TEMP_PATH = BASE_DIR / "../files/night_points_temp"
 
 MAIL_COMMAND = f"{PYTHON_PATH} -m {SEND_MAIL_PATH}"
+# MAIL_COMMAND = f"echo Hellooooo >> /tmp/hello.txt"
 MINUTES_COMMAND = f"{PYTHON_PATH} -m {CREATE_MINUTES_PATH}"
 CRON_COMMAND = f"{PYTHON_PATH} -m {CRON_PATH}"
 
@@ -58,7 +60,7 @@ def does_file_exist(path):
     p = Path(path)
     return p.exists()
 
-def delete_file(path):
+def delete(path):
     Path(path).unlink()
 
 
@@ -231,9 +233,30 @@ def clear_all_at_jobs():
 
 
 def schedule_job(date_obj, hour, minute, command):
-    time_str = f"{date_obj:%Y%m%d}{int(hour):02d}{int(minute):02d}"
-    at_command = f'echo "{MINUTES_COMMAND}" | at -t {time_str}'
-    subprocess.run(at_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time_str = f"{hour:02d}:{minute:02d} {date_obj:%Y-%m-%d}"
+    log_path = f"/tmp/at_job_{hour}{minute}.log"
+    script_path = f"/tmp/at_job_{hour}{minute}.sh"
+   
+
+    project_root = str((BASE_DIR / "..").resolve())
+
+    script = (
+        "#!/bin/bash\n"
+        f"exec > {log_path} 2>&1\n"
+        "set -x\n"
+        f"export HOME={os.environ.get('HOME')}\n"
+        f"export PATH={os.environ.get('PATH')}\n"
+        f"export PYTHONPATH={project_root}\n"
+        f"cd {project_root}\n"
+        f"{command}\n"
+    )
+    with open(script_path, "w") as f:
+        f.write(script)
+    os.chmod(script_path, 0o755)
+    at_command = f"at {time_str} -f {script_path}"
+    subprocess.run(at_command, shell=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
 def get_call_date():
     dia_reu = get_next_meeting_date()
@@ -242,7 +265,6 @@ def get_call_date():
 def borrar_scheduled_jobs():
     # Borramos los cron jobs actuales para el acta y el correo
     remove_cron_job(MAIL_COMMAND)
-    remove_cron_job(MINUTES_COMMAND)
 
     # Borramos los at actuales
     clear_all_at_jobs()
@@ -250,27 +272,24 @@ def borrar_scheduled_jobs():
 def schedule_call(date_obj, hour, minute):
     borrar_scheduled_jobs()
 
-    # Programamos el at para crear el acta
-    if(minute == 0):
-        hour_acta = hour-1
-        minute_acta = 59
-    else:
-        hour_acta = hour
-        minute_acta = minute-1
-    schedule_job(date_obj, hour_acta, minute_acta, MINUTES_COMMAND)
+    # Programamos el at para mandar este correo
+    schedule_job(date_obj, hour, minute, MAIL_COMMAND)
+    print(f"Se mandará el correo el {date_obj.strftime('%d/%m/%Y')} a las {format_time(str(hour))}:{format_time(str(minute))}")
 
+    print_next_meeting()
     # Restauramos los cron jobs para el acta y la convocatoria normal a partir del siguiente domingo a las 19
     date_obj += timedelta(days=7)
     schedule_job(date_obj, 18, 0, CRON_COMMAND)
     print("A partir de la siguiente semana, las convocatorias se mandarán el domingo a las 19:00")
 
-    print(f"Se creará el acta el {date_obj.strftime('%d/%m/%Y')} a las {format_time(str(hour_acta))}:{format_time(str(minute_acta))}")
-    # Programamos el at para mandar este correo
-    schedule_job(date_obj, hour, minute, MAIL_COMMAND)
-    print(f"Se mandará el correo el {date_obj.strftime('%d/%m/%Y')} a las {format_time(str(hour))}:{format_time(str(minute))}")
 
 
 # Función de debuggear para enviar correo instantaneamnete y crear el acta
 def send_instantly():
     borrar_scheduled_jobs()
-    
+
+def print_next_meeting():
+        proxima_reu = get_next_meeting_date()
+        proxima_conv = get_call_date()
+        print(f"La próxima reunión será el {proxima_reu.strftime('%d/%m/%Y')}. Se ha programado la convocatoria para el {proxima_conv.strftime('%d/%m/%Y')} a las {format_time(str(get_next_meeting_hour()))}:{format_time(str(get_next_meeting_minute()))}")
+

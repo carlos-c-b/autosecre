@@ -239,7 +239,6 @@ def cambiar_dia_reu():
         # 3. Añade los cron jobs para restaurar las reus normales de los viernes (crear acta y mandar correo los domingos a las 19h a partir del siguiente domingo)
         schedule_call(dia_convocatoria, hour, minute)
 
-        print_next_meeting()
     else:
         print("Valor introducido no válido. Operación abortada")
 
@@ -277,10 +276,6 @@ def suspender_convocatorias():
         write_suspended(True)
         print("Se han suspendido las convocatorias de reunión")
 
-def print_next_meeting():
-        proxima_reu = get_next_meeting_date()
-        proxima_conv = get_call_date()
-        print(f"La próxima reunión será el {proxima_reu.strftime('%d/%m/%Y')}. Se ha programado la convocatoria para el {proxima_conv.strftime('%d/%m/%Y')} a las {format_time(str(get_next_meeting_hour()))}:{format_time(str(get_next_meeting_minute()))}")
 
 def main():
     while True:

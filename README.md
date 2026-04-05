@@ -7,3 +7,7 @@ Instalar at y ejecutar sudo systemctl enable --now atd
 Comprobar utils.utils en schedule_job que el formato de la fecha es el aceptado por cron en el sistema
 
 Definir alias py=venv/bin/python. Si no, algunos módulos no funcionarán
+
+Establecer variable de entrono NOMBRE_SECRE con el nombre del secretario para los correos
+
+Para la firma del correo, habría que poder cambiar manualmente tanto el nombre como el teléfono. Todavía no está implementado

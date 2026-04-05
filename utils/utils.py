@@ -1,4 +1,5 @@
 import re
+import csv
 import os
 import subprocess
 from datetime import datetime, date, timedelta
@@ -293,3 +294,36 @@ def print_next_meeting():
         proxima_conv = get_call_date()
         print(f"La próxima reunión será el {proxima_reu.strftime('%d/%m/%Y')}. Se ha programado la convocatoria para el {proxima_conv.strftime('%d/%m/%Y')} a las {format_time(str(get_next_meeting_hour()))}:{format_time(str(get_next_meeting_minute()))}")
 
+def generate_csvs_normal(preguntas):
+
+    with open("questions.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["title", "description", "validation_min", "validation_max", "randomize_options"])
+        for p in preguntas:
+            writer.writerow([p, "", 1, 1, ""])
+
+    with open("options.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["question", "title", "short_description", "description", "photo", "sort"])
+        for p in preguntas:
+            writer.writerow([p, "A favor", "", "", "", 0])
+            writer.writerow([p, "En contra", "", "", "", 1])
+            writer.writerow([p, "Blanco", "", "", "", 2])
+
+    print("Generados los CSVs para Election Runner: questions.csv y options.csv")
+
+def generate_csvs_elections(cargos):
+    with open("questions.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["title", "description", "validation_min", "validation_max", "randomize_options"])
+        for cargo, _ in cargos:
+            writer.writerow([cargo, "", 1, 1, ""])
+
+    with open("options.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["question", "title", "short_description", "description", "photo", "sort"])
+        for cargo, candidates in cargos:
+            for i, candidate in enumerate(candidates):
+                writer.writerow([cargo, candidate, "", "", "", i])
+
+    print("Generados los CSVs para Election Runner: questions.csv y options.csv")

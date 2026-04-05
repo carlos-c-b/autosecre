@@ -25,7 +25,7 @@ WEEK_MAP = {
     "D": 6,
 }
 
-commands = ["help", "exit", "actas", "reus"]
+commands = ["help", "exit", "actas", "reus", "votaciones"]
 
 completer = WordCompleter(commands, ignore_case=True)
 
@@ -276,6 +276,53 @@ def suspender_convocatorias():
         write_suspended(True)
         print("Se han suspendido las convocatorias de reunión")
 
+def votaciones():
+    print("\nGestionar votaciones")
+    print("Selecciona una órden: ")
+    print("1) Crear convocatoria de votación y CSVs")
+
+    ans = input("Selección: ")
+    if ans == "1":
+        print("\nSeleccionar tipo de votación:")
+        print("1) Votación normal (A favor, en contra, blanco)")
+        print("2) Votación a cargos")
+
+        try:
+            ans = input("Selección: ")
+            if ans == "1":
+                print("Configurando votación normal")
+
+                preguntas = []
+                while True:
+                    pregunta = input("Añadir pregunta (o nada para finalizar): ")
+                    if pregunta == "":
+                        break
+                    preguntas.append(pregunta)
+                generate_csvs_normal(preguntas)
+            elif ans == "2":
+                print("Configurando votación a cargos")
+                print("Introduce el nombre del cargo (o nada para finalizar)")
+                cargos = []
+                while True:
+                    cargo = input("Nombre del cargo: ")
+                    if cargo == "":
+                        break
+                    candidates = []
+                    while True:
+                        candidate = input("\tNombre del candidato: ")
+                        if candidate == "":
+                            break
+                        candidates.append(candidate)
+                    candidates.append("Blanco")
+                    cargos.append([cargo, candidates])
+                generate_csvs_elections(cargos)
+            else:
+                print("Selección inválida")
+        except KeyboardInterrupt:
+            print("\nOperación abortada")
+    else:
+        print("Selección inválida")
+
 
 def main():
     while True:
@@ -300,6 +347,8 @@ def main():
                 actas()
             elif cmd == "reus":
                 reus()
+            elif cmd == "votaciones":
+                votaciones()
             else:
                 print(f"Comando desconocido: {cmd}")
 

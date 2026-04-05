@@ -144,11 +144,11 @@ def get_next_meeting_date():
 
 def get_next_meeting_hour():
     data = load(MEETING_DATES_PATH)
-    return date.fromisoformat(data[2])
+    return data[2]
 
 def get_next_meeting_minute():
     data = load(MEETING_DATES_PATH)
-    return date.fromisoformat(data[3])
+    return data[3]
 
 def set_last_meeting_date(date):
     data = load(MEETING_DATES_PATH)
@@ -193,21 +193,31 @@ def remove_cron_job(command):
         shell=True
     )
 
-import subprocess
+def format_time(s):
+    if(len(s) == 1):
+        return '0' + s
+    else:
+        return s
 
 def clear_all_at_jobs():
     result = subprocess.run("atq", shell=True, capture_output=True, text=True)
     job_ids = [line.split()[0] for line in result.stdout.splitlines()]
 
     for job_id in job_ids:
-        subprocess.run(f"atrm {job_id}", shell=True)
+        subprocess.run(f"atrm {job_id}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 
 def schedule_job(date_obj, hour, minute, command):
-    time_str = f"{date_obj:%Y%m%d}{hour:02d}{minute:02d}"
+    time_str = f"{date_obj:%Y%m%d}{int(hour):02d}{int(minute):02d}"
     at_command = f'echo "{MINUTES_COMMAND}" | at -t {time_str}'
-    subprocess.run(at_command, shell=True, check=True)
+    subprocess.run(at_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-def schedule_call(date_obj, hour, minute):
+def get_call_date():
+    dia_reu = get_next_meeting_date()
+    return dia_reu - timedelta(days=5)
+
+def borrar_scheduled_jobs():
     # Borramos los cron jobs actuales para el acta y el correo
     remove_cron_job(MAIL_COMMAND)
     remove_cron_job(MINUTES_COMMAND)
@@ -215,16 +225,23 @@ def schedule_call(date_obj, hour, minute):
     # Borramos los at actuales
     clear_all_at_jobs()
 
+def schedule_call(date_obj, hour, minute):
+    borrar_scheduled_jobs()
+
     # Programamos el at para crear el acta
-    hour_acta = hour-1
-    minute_acta = 59
+    if(minute == 0):
+        hour_acta = hour-1
+        minute_acta = 59
+    else:
+        hour_acta = hour
+        minute_acta = minute-1
     schedule_job(date_obj, hour_acta, minute_acta, MINUTES_COMMAND)
-    print(f"Se creará el acta el {date_obj.strftime('%d/%m/%Y')} a las {hour_acta}:{minute_acta}")
+    print(f"Se creará el acta el {date_obj.strftime('%d/%m/%Y')} a las {format_time(str(hour_acta))}:{format_time(str(minute_acta))}")
     # Programamos el at para mandar este correo
     schedule_job(date_obj, hour, minute, MAIL_COMMAND)
-    print(f"Se mandará el correo el {date_obj.strftime('%d/%m/%Y')} a las {hour}:{minute}")
+    print(f"Se mandará el correo el {date_obj.strftime('%d/%m/%Y')} a las {format_time(str(hour))}:{format_time(str(minute))}")
 
     # Restauramos los cron jobs para el acta y la convocatoria normal a partir del siguiente domingo a las 19
     date_obj += timedelta(days=7)
-    schedule_job(date_obj, hour-1, minute, CRON_COMMAND)
+    schedule_job(date_obj, 18, 0, CRON_COMMAND)
     print("A partir de la siguiente semana, las convocatorias se mandarán el domingo a las 19:00")

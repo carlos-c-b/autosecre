@@ -117,32 +117,22 @@ def get_hour(s: str) -> int:
 def get_minute(s: str) -> int:
     return int(s.split(":")[1])
 
-def format_time(s):
-    if(len(s) == 1)
-        return '0' + s
-    else:
-        return s
 
 def cambiar_dia_reu():
     date_answer = input("Introduce fecha de la próxima reu (DD/MM/YYYY): ")
     hour_answer = input("Introduce la hora (HH:MM): ")
 
-    if  is_valid_date_format(answer) and is_valid_time(hour_answer):
-        newdate = datetime.strptime(answer, "%d/%m/%Y").date()
+    if  is_valid_date_format(date_answer) and is_valid_time(hour_answer):
+        newdate = datetime.strptime(date_answer, "%d/%m/%Y").date()
         hour = get_hour(hour_answer)
-        minute = get_minute(minute_answer)
+        minute = get_minute(hour_answer)
 
         set_last_meeting_date(get_next_meeting_date())
         set_next_meeting_date(newdate)
         set_next_meeting_hour(hour)
         set_next_meeting_minute(minute)
 
-        dia_reu = get_next_meeting_date()
-        dia_convocatoria = dia_reu - timedelta(days=5)
-
-        today = date.today()
-        sunday = today + timedelta(days=6-today.weekday())
-
+        dia_convocatoria = get_call_date()
 
         # El siguiente método:
         # 1. Elimina los cron jobs actuales para mandar correo y crear acta el domingo
@@ -152,10 +142,14 @@ def cambiar_dia_reu():
 
         print_next_meeting()
     else:
-        print("Valor introducido no válido")
+        print("Valor introducido no válido. Operación abortada")
 
 def ver_dia_reu():
-    print_next_meeting()
+    suspended = read_suspended()
+    if suspended:
+        print("Las convocatorias están suspendidas. Actívalas para ver la fecha de la próxima reunión")
+    else:
+        print_next_meeting()
 
 
 def gestionar_suspension():
@@ -163,7 +157,7 @@ def gestionar_suspension():
     if suspended:
         val = "Actualmente las convocatorias están suspendidas. ¿Desea activarlas? (si/no): "
     else:
-        val = "Actualmente las convocatorias no están suspendidas. ¿Desea suspenderlas? (si/no)"
+        val = "Actualmente las convocatorias no están suspendidas. ¿Desea suspenderlas? (si/no): "
     print("Suspender convocatorias")
     answer = input(val)
     if val:
@@ -176,16 +170,18 @@ def gestionar_suspension():
 def activar_convocatorias():
         write_suspended(False)
         print("Se han reanudado las convocatorias de reunión")
+        schedule_call(get_next_meeting_date(), get_next_meeting_hour(), get_next_meeting_minute())
         print_next_meeting()
 
 def suspender_convocatorias():
+        borrar_scheduled_jobs()
         write_suspended(True)
         print("Se han suspendido las convocatorias de reunión")
 
 def print_next_meeting():
         proxima_reu = get_next_meeting_date()
-        proxima_conv = proxima_reu - timedelta(days=5)
-        print(f"La próxima reunión será el {proxima_reu.strftime('%d/%m/%Y')}. Se ha programado la convocatoria para el {proxima_conv.strftime('%d/%m/%Y')} a las {format_time(get_next_meeting_hour)}:{format_time(get_next_meeting_minute)}")
+        proxima_conv = get_call_date()
+        print(f"La próxima reunión será el {proxima_reu.strftime('%d/%m/%Y')}. Se ha programado la convocatoria para el {proxima_conv.strftime('%d/%m/%Y')} a las {format_time(str(get_next_meeting_hour()))}:{format_time(str(get_next_meeting_minute()))}")
 
 def main():
     while True:
@@ -204,7 +200,6 @@ def main():
                 print("\t- reus\tModificar fecha de próximas reus")
                 print("\t- actas\tCambiar carpeta de actas")
                 print("\t- exit\tSalir")
-                break
             elif cmd == "":
                 continue
             elif cmd == "actas":
